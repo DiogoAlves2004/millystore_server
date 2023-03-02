@@ -1,0 +1,9 @@
+Username:	xq4ilazs1y2lu2oyhc5d
+Password:	pscale_pw_VIJLAgw2IIfctpf5yuScjZ7FY9O0ZJUV4vyWNlCazzM
+
+
+//-> schema test
+DATABASE_URL='mysql://fzules5vbdlsjdz8r1vp:pscale_pw_KJ6VoxUH4s6DmD4YuJ9m4GuWsyLWREF2yFQM0kQy9Lr@aws-sa-east-1.connect.psdb.cloud/db_millystore?ssl={"rejectUnauthorized":true}'
+
+//-> prod
+DATABASE_URL='mysql://xq4ilazs1y2lu2oyhc5d:pscale_pw_VIJLAgw2IIfctpf5yuScjZ7FY9O0ZJUV4vyWNlCazzM@aws-sa-east-1.connect.psdb.cloud/db_millystore?ssl={"rejectUnauthorized":true}'
