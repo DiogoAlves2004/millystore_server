@@ -1,2 +1,4 @@
 .vercel
 node_modules/
+.env
+ISSO AQUI DEVE SER APAGADO

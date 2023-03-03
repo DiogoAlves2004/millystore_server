@@ -10,7 +10,12 @@ const mysql = require('../mysql').pool
 
 
 
-router.get('/',(req, res, next) => {
+router.get(`/:AUTHENTICATION`,(req, res, next) => {
+
+    //Autenticação simples
+    if(req.params.AUTHENTICATION != process.env.AUTHENTICATION){
+        return res.status(401).send({erro: 401, message: 'Sua chave de autenticação esta errada!'})
+    }
 
     mysql.getConnection((error, conn)=>{
         if(error){return res.status(500).send({ error: error })}
@@ -20,14 +25,10 @@ router.get('/',(req, res, next) => {
     mysql.getConnection((error, conn)=>{
         if(error){return res.status(500).send({ error: error })}
         conn.query(
-
-
             'SELECT * FROM pedidos',
             (error, result, field) => {
                 conn.release()
-
                 if(error){return res.status(500).send({ error: error })}
-
                 const response = {
                     quantidade: result.length,
                     pedidos: result.map(pedido => {
@@ -35,6 +36,10 @@ router.get('/',(req, res, next) => {
                             id_pedido: pedido.id_pedido,
                             id_produto: pedido.id_produto,
                             quantidade: pedido.quantidade,
+                            valor: pedido.valor,
+                            nome_cliente: pedido.nome_cliente,
+                            endereco_entrega: pedido.endereco_entrega,
+                            status: pedido.status,
                             request: {
                                 tipo: 'GET',
                                 descricao: 'retorna o produto inserido no pedido',
@@ -43,26 +48,28 @@ router.get('/',(req, res, next) => {
                         }
                     })
                 }
-
-                res.status(501).send(response);
-
+                res.status(200).send(response);
             }
         )
     })
-
 });
 
 
 
 
 
-router.get('/:id_produto', (req, res, next)=> {
-    const id = req.params.id_produto
+router.get(`/:AUTHENTICATION/:id_pedido`, (req, res, next)=> {
+    const id = req.params.id_pedido
+
+    //Autenticação simples
+    if(req.params.AUTHENTICATION != process.env.AUTHENTICATION){
+        return res.status(401).send({erro: 401, message: 'Sua chave de autenticação esta errada!'})
+    }
 
     mysql.getConnection((error, conn)=>{
         if(error){return res.status(500).send({ error: error })}
         conn.query(
-            'SELECT * FROM pedidos WHERE id_pedido = ?',
+            'SELECT * FROM pedidos WHERE id_pedido = ?;',
             [req.params.id_pedido],
             (error, result, field) => {
                 conn.release()
@@ -71,82 +78,102 @@ router.get('/:id_produto', (req, res, next)=> {
 
 
                 if(result.length == 0){
-                    return res.status(404).send({mensage: 'Algo esta errado!'})
+                    return res.status(404).send({erro: 404, mensage: 'Esse pedido nao existe ou ja foi excluido!'})
                 }
 
                 const response = {
                     message: 'Produto selecionado:',
-                    id_pedido: pedido.id_pedido,
-                    id_produto: pedido.id_produto,
-                    quantidade: pedido.quantidade,
+                    id_pedido: result[0].id_pedido,
+                    id_produto: result[0].id_produto,
+                    quantidade: result[0].quantidade,
+                    valor: result[0].valor,
+                    nome_cliente: result[0].nome_cliente,
+                    endereco_entrega: result[0].endereco_entrega,
+                    status: result[0].status,
                     request: {
                         tipo: 'GET',
                         descricao: 'retorna todos os produtos',
                         url: 'http://localhost:3000/produtos/'
                     }
-
                 }
-                return res.status(501).send(response);
-
+                return res.status(200).send(response);
             }
         )
     })
-
 })
 
 
 
 //insere um pedido no db
-router.post('/', (req, res, next)=> {
+router.post(`/:AUTHENTICATION`, (req, res, next)=> {
+
+
+    //Autenticação simples
+    if(req.params.AUTHENTICATION != process.env.AUTHENTICATION){
+        return res.status(401).send({erro: 401, message: 'Sua chave de autenticação esta errada!'})
+    }
+
     mysql.getConnection((error, conn)=>{
+        var id_produto = req.body.id_produto
+        var quantidade = req.body.quantidade
         if(error){return res.status(500).send({ error: error })}
         conn.query(
-            'INSERT INTO pedidos (id_produto, quantidade) VALUES (?,?);',
-            [req.body.id_produto, req.body.quantidade],
+            'INSERT INTO pedidos (id_produto, quantidade, nome_cliente, endereco_entrega) VALUES (?,?,?,?);',
+            [
+                req.body.id_produto,
+                req.body.quantidade,
+                req.body.nome_cliente,
+                req.body.endereco_entrega,
+            ],
             (error, result, field) => {
                 conn.release()
-
                 if(error){return res.status(500).send({ error: error })}
-                
-
-
                 const response = {
-                    
                     message: 'Pedido inserido com sucesso',
                     pedidoCriado: {
-                        id_pedido: req.body.id_pedido,
                         id_produto: req.body.id_produto,
                         quantidade: req.body.quantidade,
+                        nome_cliente: req.nome_cliente,
+                        endereco_entrega: req.body.endereco_entrega,
+                        
                         request: {
                             tipo: 'GET',
-                            descricao: 'retorna todos os pedidos',
-                            url: 'http://localhost:3000/pedidos/'
+                            descricao: 'Retorna o produto que esta inserido nesse pedido',
+                            url: 'http://localhost:3000/produtos/'+req.body.id_produto
                         }
                     }
-
                 }
-                return res.status(501).send(response);
-
+                return res.status(200).send({response})
             }
         )
     })
-
 })
 
 
-//atualiza um protudo no db
-router.patch('/',(req, res, next)=> {
+//atualiza um produto no db
+router.patch(`/:AUTHENTICATION`,(req, res, next)=> {
+
+
+    //Autenticação simples
+    if(req.params.AUTHENTICATION != process.env.AUTHENTICATION){
+        return res.status(401).send({erro: 401, message: 'Sua chave de autenticação esta errada!'})
+    }
+
     mysql.getConnection((error, conn)=>{
         if(error){return res.status(500).send({ error: error })}
         conn.query(
             `UPDATE pedidos
-                SET id_produto  = ?,
-                    quantidade  = ? 
+                SET id_produto      = ?,
+                    quantidade      = ?,
+                    nome_cliente    = ?,
+                    endereco_entrega =?
             WHERE id_pedido = ?;`
             ,
             [
                 req.body.id_produto,
-                req.body.quantidade, 
+                req.body.quantidade,
+                req.body.nome_cliente,
+                req.body.endereco_entrega,
                 req.body.id_pedido
             ],
             (error, resultado, field) => {
@@ -173,7 +200,12 @@ router.patch('/',(req, res, next)=> {
 
 
 //deleta um produto no db
-router.delete('/:id_pedido',(req, res, next)=> {
+router.delete(`/:AUTHENTICATION/:id_pedido`,(req, res, next)=> {
+
+    //Autenticação simples
+    if(req.params.AUTHENTICATION != process.env.AUTHENTICATION){
+        return res.status(401).send({erro: 401, message: 'Sua chave de autenticação esta errada!'})
+    }
 
     mysql.getConnection((error, conn)=>{
         if(error){return res.status(500).send({ error: error })}
@@ -195,15 +227,11 @@ router.delete('/:id_pedido',(req, res, next)=> {
                         url: 'http://localhost/peididos'
                     }
                 }
-
                 res.status(201).send(response);
-
             }
         )
     })
 
 })
-
-
 
 module.exports = router
